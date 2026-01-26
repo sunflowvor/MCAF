@@ -1,0 +1,291 @@
+<div class="tracking-editor">
+  <div class="toolbar">
+    <button id="backBtn">⬅ 返回主页</button>
+    <button id="prevBtn">◀ Prev</button>
+    <span id="frameInfo"></span>
+    <button id="nextBtn">Next ▶</button>
+
+    <button id="addBoxBtn">➕ Add Box</button>
+    <button id="deleteBtn">🗑 Delete</button>
+    <button id="saveBtn">💾 Save</button>
+  </div>
+
+  <div class="editor-body">
+    <canvas id="editorCanvas"></canvas>
+
+    <div class="side-panel">
+      <h3>Selected Box</h3>
+      <label>
+        Track ID:
+        <input id="trackIdInput" type="number" />
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 👇👇👇 把 tracking_editor.js 的全部内容粘到这里 👇👇👇 */
+
+let data = null;
+let currentIdx = 0;
+
+let selectedAnns = [];   // ⭐ 支持多选
+let dragging = false;
+let dragMode = null;    // move | tl | tr | bl | br
+let dragStart = null;
+
+let addMode = false;
+let addStart = null;
+
+const canvas = document.getElementById("editorCanvas");
+const ctx = canvas.getContext("2d");
+
+function colorFromTrackId(id) {
+  const r = (id * 37) % 255;
+  const g = (id * 59) % 255;
+  const b = (id * 83) % 255;
+  return `rgb(${r},${g},${b})`;
+}
+
+async function loadTracking() {
+  console.log("📦 loading tracking data...");
+  const res = await fetch("/api/tracking/load");
+  data = await res.json();
+  console.log("✅ tracking loaded:", data);
+  loadFrame();
+}
+
+function redraw() {
+  if (!data) return;
+  loadFrame();
+}
+
+function loadFrame() {
+  const imgInfo = data.images[currentIdx];
+  const img = new Image();
+
+  img.onload = () => {
+    console.log("🖼 image loaded:", img.src);
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    drawBoxes();
+    document.getElementById("frameInfo").innerText =
+      `${currentIdx + 1} / ${data.images.length}`;
+  };
+
+  img.onerror = () => {
+    console.error("❌ image load failed:", img.src);
+  };
+
+  img.src = `/project_image/${imgInfo.file_name}`;
+}
+
+function releaseMouse() {
+  dragging = false;
+  dragMode = null;
+  dragStart = null;
+
+  if (addMode) {
+    addMode = false;
+    addStart = null;
+  }
+}
+
+function drawBoxes() {
+  const imgId = data.images[currentIdx].id;
+  const anns = data.annotations.filter(a => a.image_id === imgId);
+
+  anns.forEach(ann => {
+    const [x,y,w,h] = ann.bbox;
+    const selected = selectedAnns.includes(ann);
+    const color = colorFromTrackId(ann.track_id);
+
+    ctx.strokeStyle = selected ? "lime" : color;
+    ctx.lineWidth = selected ? 3 : 2;
+    ctx.strokeRect(x,y,w,h);
+
+    ctx.fillStyle = color;
+    ctx.fillText(`ID:${ann.track_id}`, x, y - 4);
+
+    if (selected) {
+      drawHandle(x, y);
+      drawHandle(x+w, y);
+      drawHandle(x, y+h);
+      drawHandle(x+w, y+h);
+    }
+  });
+}
+
+function drawHandle(x,y) {
+  ctx.fillStyle = "yellow";
+  ctx.fillRect(x-4, y-4, 8, 8);
+}
+
+function hitTest(px, py, ann) {
+  const [x,y,w,h] = ann.bbox;
+  const s = 8;
+
+  if (near(px,py,x,y,s)) return "tl";
+  if (near(px,py,x+w,y,s)) return "tr";
+  if (near(px,py,x,y+h,s)) return "bl";
+  if (near(px,py,x+w,y+h,s)) return "br";
+  if (px>x && px<x+w && py>y && py<y+h) return "move";
+  return null;
+}
+
+function near(px,py,x,y,s) {
+  return Math.abs(px-x)<s && Math.abs(py-y)<s;
+}
+
+canvas.onmousedown = (e) => {
+  const {offsetX:px, offsetY:py} = e;
+  const imgId = data.images[currentIdx].id;
+  const anns = data.annotations.filter(a => a.image_id === imgId);
+
+  if (addMode) {
+    addStart = [px,py];
+    return;
+  }
+
+  for (let ann of [...anns].reverse()) {
+    const mode = hitTest(px,py,ann);
+    if (mode) {
+      if (!e.shiftKey) selectedAnns = [];
+      if (!selectedAnns.includes(ann)) selectedAnns.push(ann);
+
+      dragMode = mode;
+      dragging = true;
+      dragStart = [px,py];
+      redraw();
+      return;
+    }
+  }
+
+  selectedAnns = [];
+  redraw();
+};
+
+canvas.onmousemove = (e) => {
+  if (!dragging || selectedAnns.length === 0) return;
+  const {offsetX:px, offsetY:py} = e;
+  const dx = px - dragStart[0];
+  const dy = py - dragStart[1];
+
+  selectedAnns.forEach(ann => {
+    let [x,y,w,h] = ann.bbox;
+
+    if (dragMode === "move") {
+      ann.bbox = [x+dx,y+dy,w,h];
+    }
+    if (dragMode === "tl") {
+      ann.bbox = [x+dx,y+dy,w-dx,h-dy];
+    }
+    if (dragMode === "tr") {
+      ann.bbox = [x,y+dy,w+dx,h-dy];
+    }
+    if (dragMode === "bl") {
+      ann.bbox = [x+dx,y,w-dx,h+dy];
+    }
+    if (dragMode === "br") {
+      ann.bbox = [x,y,w+dx,h+dy];
+    }
+  });
+
+  dragStart = [px,py];
+  redraw();
+};
+
+document.getElementById("backBtn").onclick = () => {
+  if (confirm("确认返回主界面？未保存的修改将丢失")) {
+    nav("/");   // 👈 回到主界面 Dashboard
+  }
+};
+
+document.getElementById("nextBtn").onclick = () => {
+  currentIdx = Math.min(currentIdx + 1, data.images.length - 1);
+  loadFrame();
+};
+
+document.getElementById("prevBtn").onclick = () => {
+  currentIdx = Math.max(currentIdx - 1, 0);
+  loadFrame();
+};
+
+document.getElementById("saveBtn").onclick = async () => {
+  data.annotations.forEach(a => {
+    const [x,y,w,h] = a.bbox;
+    a.area = w*h;
+  });
+
+  await fetch("/api/tracking/save", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+  });
+  alert("Saved");
+};
+
+document.getElementById("addBoxBtn").onclick = () => {
+  addMode = true;
+  selectedAnns = [];
+};
+
+document.getElementById("deleteBtn").onclick = () => {
+  if (selectedAnns.length === 0) return;
+
+  data.annotations = data.annotations.filter(a => !selectedAnns.includes(a));
+  selectedAnns = [];
+  redraw();
+};
+
+document.getElementById("trackIdInput").onchange = (e) => {
+  const id = parseInt(e.target.value);
+  if (isNaN(id)) return;
+
+  selectedAnns.forEach(a => a.track_id = id);
+  redraw();
+};
+
+window.addEventListener("mouseup", (e) => {
+  if (addMode && addStart) {
+    const rect = canvas.getBoundingClientRect();
+    const x1 = e.clientX - rect.left;
+    const y1 = e.clientY - rect.top;
+
+    const [x0, y0] = addStart;
+
+    const box = {
+      id: Date.now(),
+      image_id: data.images[currentIdx].id,
+      category_id: 1,
+      bbox: [
+        Math.min(x0, x1),
+        Math.min(y0, y1),
+        Math.abs(x1 - x0),
+        Math.abs(y1 - y0)
+      ],
+      area: Math.abs(x1 - x0) * Math.abs(y1 - y0),
+      iscrowd: 0,
+      track_id: 99999
+    };
+
+    data.annotations.push(box);
+    selectedAnns = [box];
+  }
+
+  releaseMouse();
+  redraw();
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    selectedAnns = [];
+    releaseMouse();
+    redraw();
+  }
+});
+
+
+loadTracking();
+</script>

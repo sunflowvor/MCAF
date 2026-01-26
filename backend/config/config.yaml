@@ -1,0 +1,32 @@
+model: ./weights/XMem.pth
+
+# Data options
+d16_path: ../DAVIS/2016
+d17_path: ../DAVIS/2017
+y18_path: ../YouTube2018
+y19_path: ../YouTube
+lv_path: ../long_video_set
+generic_path: null
+
+dataset: D17
+split: val
+output: null
+save_all: false
+benchmark: false
+
+# Long-term memory options
+enable_long_term_count_usage: false
+disable_long_term: false
+max_mid_term_frames: 10
+min_mid_term_frames: 5
+max_long_term_elements: 10000
+num_prototypes: 128
+top_k: 30
+mem_every: 5
+deep_update_every: -1
+
+# Multi-scale options
+save_scores: false
+flip: false
+size: 480
+

@@ -1,0 +1,50 @@
+<div class="container">
+    <button class="btn" onclick="nav('/')">← 返回仪表盘</button>
+    <div class="task-card" style="cursor: default;">
+        <h2>数据源配置</h2>
+        <p class="small">请输入项目根目录（绝对路径），系统将验证文件结构。</p>
+        
+        <div style="display: flex; gap: 10px; margin: 20px 0;">
+            <input type="text" id="pathInput" placeholder="/home/ivan/project/LabelAD/MCAF/data" style="flex:1">
+            <button class="btn" id="btnVerify">校验路径</button>
+        </div>
+
+        <div id="checkResult" style="margin-top: 20px;"></div>
+        <button class="btn" id="btnConfirm" style="width:100%; background:#22c55e; display:none;">确认并导入</button>
+    </div>
+</div>
+
+<script>
+// 使用 window.xxx 使其在全局作用域可见
+window.initImportPage = function() {
+    const btnVerify = document.getElementById('btnVerify');
+    const btnConfirm = document.getElementById('btnConfirm');
+    const pathInput = document.getElementById('pathInput');
+    const resultDiv = document.getElementById('checkResult');
+
+    btnVerify.onclick = async () => {
+        const path = pathInput.value.trim();
+        if (!path) return alert("请输入路径");
+
+        const res = await fetch('/api/import-path', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            resultDiv.innerHTML = '<div class="badge done">✓ 结构校验通过！</div>';
+            btnConfirm.style.display = 'block';
+        } else {
+            resultDiv.innerHTML = `<div class="badge error">✘ 校验失败: ${data.detail}</div>`;
+            btnConfirm.style.display = 'none';
+        }
+    };
+
+    btnConfirm.onclick = () => {
+        nav("/"); // 成功后跳转回主页
+    };
+};
+</script>

@@ -1,0 +1,266 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PCD Meta Editor (MVP)</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui;
+    }
+
+    #ui {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      width: 320px;
+    }
+
+    #ui input, #ui button {
+      width: 100%;
+      margin: 6px 0;
+    }
+
+    #hint {
+      font-size: 12px;
+      opacity: 0.9;
+      line-height: 1.35;
+    }
+
+    #overlay {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9;
+    }
+
+    #rect {
+      position: absolute;
+      border: 2px dashed #fff;
+      background: rgba(255,255,255,0.10);
+      display: none;
+    }
+
+    /* ======================
+      Help / Instructions
+    ====================== */
+    #helpPanel {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      width: 360px;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 20;
+
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px;
+
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    #helpHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #helpHeader button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #helpContent h4 {
+      margin: 10px 0 4px;
+      font-size: 14px;
+    }
+
+    #helpContent ul {
+      padding-left: 18px;
+      margin: 0 0 6px 0;
+    }
+
+    #helpContent li {
+      margin-bottom: 2px;
+    }
+
+    #viewToolbar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .view-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    #viewToolbar button {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #viewToolbar button:hover {
+      background: rgba(43,108,255,0.6);
+    }
+
+
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="ui">
+    <div><b>PCD Meta Editor (MVP)</b></div>
+<!-- 
+    <label>Load PCD (.pcd)</label>
+    <input id="pcdFile" type="file" accept=".pcd" /> -->
+
+    <label>Load Meta (.npy, shape Nx5)</label>
+    <!-- <input id="metaFile" type="file" accept=".npy" /> -->
+    <button id="openMeta">Open Meta</button>
+
+    <button id="openClassJson">Open Class JSON</button>
+
+    <label>Set Category (uint16)</label>
+    <input id="category" type="number" min="0" max="65535" value="1" />
+
+    <label>Set Instance (uint16)</label>
+    <input id="instance" type="number" min="0" max="65535" value="1" />
+
+    <button id="apply">Apply to Selected</button>
+    <button id="saveMeta">Save Meta (.npy)</button>
+    <button id="genBox">Generate Instance Boxes</button>
+    <button id="delBox">Delete Boxes</button>
+    <button id="exportKitti">Export KITTI</button>
+
+
+    <!-- 以后实现 npy 导出再打开 -->
+    <!-- <button id="saveMeta">Save Meta</button> -->
+
+    <div id="hint">
+      <b>Controls</b><br/>
+      - Orbit: left drag<br/>
+      - Pan: right drag<br/>
+      - Zoom: wheel<br/>
+      - Rectangle select: hold <b>Shift</b> + left drag<br/>
+      <div id="stats"></div>
+      <div id="pointInfo" style="margin-top:8px; font-size:13px;">
+        <b>Point Info</b><br/>
+        Ctrl + Click a point
+      </div>
+    </div>
+  </div>
+
+  <div id="viewToolbar">
+    <div class="view-row">
+      <button id="viewFrontX">Front View X</button>
+      <button id="viewFrontY">Front View Y</button>
+      <button id="viewTop">Ortho BEV</button>
+      <button id="viewReset">Reset View</button>
+    </div>
+  
+    <div class="view-row">
+      <button id="toggleColorMode" class="btn">
+        Color: Category
+      </button>
+      <select id="instanceFilter">
+        <option value="all">All</option>
+      </select>      
+    </div>
+  </div>
+
+  <div id="overlay">
+    <div id="rect"></div>
+  </div>
+
+  <!-- ======================
+     Help / Instructions
+  ====================== -->
+  <div id="helpPanel">
+    <div id="helpHeader">
+      <b>🧭 How to Use</b>
+      <button id="closeHelp">✕</button>
+    </div>
+
+    <div id="helpContent">
+      <h4>1. Load Data</h4>
+      <ul>
+        <li>Load <b>PCD</b> point cloud</li>
+        <li>Load <b>meta.npy</b> (N×9)</li>
+      </ul>
+
+      <h4>2. Point Labeling</h4>
+      <ul>
+        <li><b>Shift + Left Drag</b>: select points</li>
+        <li>Set <b>Category / Instance</b></li>
+        <li>Click <b>Apply</b></li>
+        <li><b>Ctrl + Click</b>: inspect a point</li>
+      </ul>
+
+      <h4>3. Generate Boxes</h4>
+      <ul>
+        <li>Click <b>Generate Instance Boxes</b></li>
+        <li>One box per <b>(Category, Instance)</b></li>
+      </ul>
+
+      <h4>4. Select & Move Box</h4>
+      <ul>
+        <li><b>Double Click</b>: select box</li>
+        <li><b>W / S / A / D</b>: move in XY</li>
+        <li><b>↑ / ↓</b>: move in Z</li>
+        <li><b>Q / E</b>: rotate yaw</li>
+      </ul>
+
+      <h4>5. Resize Box</h4>
+      <ul>
+        <li>Edit dx / dy / dz independently</li>
+      </ul>
+
+      <h4>6. Other</h4>
+      <ul>
+        <li><b>Delete</b>: delete selected box</li>
+        <li><b>Export KITTI</b></li>
+      </ul>
+    </div>
+  </div>
+
+
+  <script type="module" src="/pc/main.js"></script>
+</body>
+</html>

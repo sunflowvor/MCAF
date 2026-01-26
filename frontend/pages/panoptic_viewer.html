@@ -1,0 +1,31 @@
+<div class="panoptic-viewer">
+  <div class="toolbar">
+    <button id="btnPrev">◀ Prev</button>
+    <span id="frameInfo">Frame</span>
+    <button id="btnNext">Next ▶</button>
+    <button id="btnDeleteMask" class="btn danger">Delete Mask</button>
+    <button id="btnDraw" class="btn">✏️ Draw</button>
+    <button id="btnSave">💾 Save</button>
+  </div>
+
+  <div class="pv-image-wrapper">
+    <img id="pvImage" />
+    <canvas id="pvCanvas"></canvas>
+  </div>
+</div>
+
+<!-- 右侧 Mask 列表 -->
+<div id="maskListPanel">
+  <div class="mask-list-title">Masks</div>
+  <ul id="maskList"></ul>
+</div>
+
+<div id="fastSamPanel">
+  <div class="title">Fast-SAM Preview</div>
+
+  <div class="pv-image-wrapper">
+    <!-- 只需要 canvas，图像是逻辑上的同一张 -->
+    <canvas id="fastSamCanvas"></canvas>
+  </div>
+</div>
+

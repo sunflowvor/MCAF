@@ -1,0 +1,7 @@
+{
+  "steps": [
+    { "id": "import", "name": "数据导入", "type": "ui", "entry": "/import", "desc": "配置数据集路径" },
+    { "id": "img_seg", "name": "图像分割", "type": "ui", "entry": "/image", "desc": "2D 语义分割标注" },
+    { "id": "pc_seg", "name": "点云分割", "type": "ui", "entry": "/pointcloud", "desc": "3D 目标检测与分割" }
+  ]
+}

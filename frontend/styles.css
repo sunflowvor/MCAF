@@ -1,0 +1,322 @@
+:root {
+    --bg: #0f1115;
+    --panel: #1a1d23;
+    --primary: #2b6cff;
+    --text: #e6e6e6;
+    --border: rgba(255,255,255,0.15);
+}
+
+/* ================== 全局 ================== */
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* ================== 顶部工具栏 ================== */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+}
+
+.btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+/* ================== 左侧工具栏 ================== */
+.side-toolbar {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 10px 14px;
+    background: rgba(26, 29, 35, 0.96);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+
+    z-index: 9000;
+    box-shadow: 0 0 18px rgba(0,0,0,0.45);
+}
+
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 8px 14px;
+    height: 40px;
+
+    border-radius: 10px;
+    border: none;
+
+    background: rgba(255,255,255,0.08);
+    color: #e6e6e6;
+
+    font-size: 14px;
+    white-space: nowrap;   /* ✅ 中文不换行 */
+    cursor: pointer;
+
+    transition: background 0.15s, transform 0.1s;
+}
+
+.tool-btn:hover {
+    background: rgba(43,108,255,0.35);
+}
+
+.tool-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.side-toolbar hr {
+    width: 70%;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 6px 0;
+}
+
+.side-toolbar .btn-success {
+    margin-left: 14px;
+
+    padding: 9px 16px;
+    height: 40px;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    background: #22c55e;
+    border-radius: 10px;
+    border: none;
+
+    white-space: nowrap;
+}
+
+/* ================== 图像区域 ================== */
+.annotation-container {
+    margin-left: 90px; /* 给左侧工具栏让位90/16 */
+    padding: 16px;
+}
+
+.image-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.image-wrapper img,
+.image-wrapper canvas {
+    max-width: 800px;
+}
+
+/* 原图：唯一点击源 */
+#baseImage {
+    display: block;
+    user-select: none;
+    pointer-events: auto;
+}
+
+/* SAM overlay：仅展示 */
+#segOverlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* 交互层 */
+/* #draw-polygon {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+} */
+
+/* ================== 下方结果图 ================== */
+#samResultImage {
+    margin-top: 12px;
+    max-width: 800px;
+    width: 100%;
+    display: none;
+    border: 1px solid var(--border);
+}
+
+/* ================== 右上角已标注列表 ================== */
+#labelListPanel {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+
+    width: 260px;
+    max-height: 60vh;
+
+    background: rgba(26, 29, 35, 0.95);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    padding: 10px 12px;
+    z-index: 9500;
+
+    overflow-y: auto;
+    box-shadow: 0 0 16px rgba(0,0,0,0.4);
+}
+
+.label-panel-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #9cc3ff;
+}
+
+#labelList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#labelList li {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.del-btn {
+    background: none;
+    border: none;
+    color: #f87171;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+}
+
+.del-btn:hover {
+    color: #ef4444;
+}
+
+/* ================== Polygon 标注专用 ================== */
+#polygonPanel {
+    position: block;
+}
+
+#polygonPanel img {
+    pointer-events: none;
+    user-select: none;
+}
+
+#polygonCanvas {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: auto;
+    cursor: crosshair;
+}
+
+
+/* ================== Panoptic Viewer ================== */
+
+
+.pv-image-wrapper {
+position: relative;
+display: inline-block;
+}
+
+#pvImage {
+display: block;
+user-select: none;
+max-width: 800px;
+}
+
+#pvCanvas {
+position: absolute;
+inset: 0;
+z-index: 10;
+pointer-events: auto; /* 先关交互，保证能看到 */
+}
+
+#maskListPanel {
+    position: fixed;
+    top: 60px;
+    right: 16px;
+  
+    width: 260px;
+    max-height: 80vh;
+  
+    background: rgba(26, 29, 35, 0.95);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+  
+    padding: 10px 12px;
+    z-index: 9500;
+  
+    overflow-y: auto;
+    box-shadow: 0 0 16px rgba(0,0,0,0.4);
+  }
+  
+  .mask-list-title {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #9cc3ff;
+  }
+  
+  #maskList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  #maskList li {
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+  
+  #maskList li:hover {
+    background: rgba(43,108,255,0.25);
+  }
+  
+  #maskList li.active {
+    outline: 2px solid #00ffff;
+    background: rgba(0,255,255,0.15);
+  }
+  .btn.danger {
+    background: #ef4444;
+    color: white;
+  }
+  .btn.danger:hover {
+    background: #dc2626;
+  }
+    
+  #fastSamPanel {
+    margin-top: 12px;
+  }
+  
+  #fastSamPanel .title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #9cc3ff;
+  }
+  
