@@ -19,6 +19,7 @@ sudo apt install -y build-essential git libgl1 libglib2.0-0
 pip install --upgrade pip
 pip install torch==2.1.0 torchvision==0.16.0
 pip install -r requirements.txt
+```
 
 ---
 
@@ -26,5 +27,6 @@ pip install -r requirements.txt
 
 ```bash
 conda activate finetune-sam
-cd *PROJECT*/MCAF/backend
+cd <PROJECT>/MCAF/backend
 uvicorn main:app --reload --port 8000
+```
